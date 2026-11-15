@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Huella energetica de la nube</title>
+<style>
+  :root { --verde:#2e7d32; --verde-osc:#1b5e20; --crema:#f1f8e9; --tierra:#5d4037; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: linear-gradient(180deg,#e0f2f1,#f1f8e9); color:#263238; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+  header { text-align:center; padding: 18px 8px 8px; }
+  h1 { margin:0 0 6px; color: var(--verde-osc); font-size: 1.7rem; }
+  header p { margin:0; color: var(--tierra); }
+  form, .resultado-box { background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-top:14px; }
+  .campo { margin-bottom:12px; }
+  .campo label { display:block; font-weight:600; color: var(--verde-osc); margin-bottom:4px; }
+  .campo small { color:#607d8b; font-weight:400; }
+  input[type=number] { width:100%; padding:10px; font-size:1rem; border:1px solid #b0bec5; border-radius:8px; }
+  input[type=number]:focus { outline:2px solid var(--verde); border-color:var(--verde); }
+  .extra { background: var(--crema); border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:8px; }
+  .extra input { accent-color: var(--verde); width:18px; height:18px; }
+  button { width:100%; margin-top:14px; padding:13px; border:0; border-radius:10px; font-size:1.05rem; font-weight:600; cursor:pointer; color:#fff; background: var(--verde); }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  #estado { margin-top:10px; font-weight:600; min-height:1.2em; }
+  .error { color:#c62828; }
+  #resultado { white-space: pre-line; background: var(--crema); border:1px solid #c5e1a5; border-radius:10px; padding:12px; margin-top:8px; }
+  footer { text-align:center; font-size:.8rem; color:#607d8b; padding:14px 0 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Huella energetica de la nube</h1>
+    <p>Cada acción digital se procesa en centros de datos que consumen energía; esta página estima tu huella.</p>
+  </header>
+
+  <form id="formHuella" novalidate>
+    <div class="campo"><label for="video">Video en streaming <small>(YouTube, Netflix, TikTok) — horas al día</small></label>
+      <input type="number" id="video" name="video" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="musica">Música en streaming <small>— horas al día</small></label>
+      <input type="number" id="musica" name="musica" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="redes">Redes sociales <small>— horas al día</small></label>
+      <input type="number" id="redes" name="redes" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="videollamadas">Videollamadas <small>— horas a la semana</small></label>
+      <input type="number" id="videollamadas" name="videollamadas" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="juegos">Juegos en línea <small>— horas al día</small></label>
+      <input type="number" id="juegos" name="juegos" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="nube">Almacenamiento en la nube <small>— GB (fotos, archivos)</small></label>
+      <input type="number" id="nube" name="nube" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="ia">Chatbots de IA <small>— consultas al día</small></label>
+      <input type="number" id="ia" name="ia" min="0" step="any" inputmode="decimal" value="0"></div>
+    <div class="campo"><label for="correos">Correos que envías <small>— al día</small></label>
+      <input type="number" id="correos" name="correos" min="0" step="any" inputmode="decimal" value="0"></div>
+
+    <!-- Reto opcional: si se marca, se envía el campo extra "acciones" -->
+    <div class="extra"><input type="checkbox" id="acciones"><label for="acciones" style="margin:0;font-weight:500">Después de aplicar las 3 acciones (calcular cuánto se reduciría la huella)</label></div>
+
+    <button type="submit" id="btnCalcular">Calcular mi huella</button>
+    <div id="estado" role="status"></div>
+  </form>
+
+  <div class="resultado-box" id="cajaResultado" style="display:none">
+    <strong>Resultado</strong>
+    <div id="resultado"></div>
+  </div>
+
+  <footer>Práctica 4.3 · Desarrollo Sustentable · TecNM Mazatlán</footer>
+</div>
+
+<script>
+  // URL del webhook de Make (escenario Huella_Nube_Cesar):
+  const WEBHOOK_URL = "https://hook.us2.make.com/zvpnhmxdlwnb4ugg1nixqgyd46ljaorn";
+
+  const form = document.getElementById("formHuella");
+  const btn = document.getElementById("btnCalcular");
+  const estado = document.getElementById("estado");
+  const resultado = document.getElementById("resultado");
+  const caja = document.getElementById("cajaResultado");
+  const CAMPOS = ["video", "musica", "redes", "videollamadas", "juegos", "nube", "ia", "correos"];
+
+  form.addEventListener("submit", async function (ev) {
+    ev.preventDefault();
+    const params = new URLSearchParams();
+    for (const c of CAMPOS) {
+      let v = parseFloat(document.getElementById(c).value);
+      if (isNaN(v) || v < 0) v = 0;
+      params.append(c, String(v));
+    }
+    if (document.getElementById("acciones").checked) params.append("acciones", "si");
+
+    btn.disabled = true;
+    btn.textContent = "Calculando...";
+    estado.textContent = "Calculando...";
+    estado.className = "";
+    try {
+      const resp = await fetch(WEBHOOK_URL, { method: "POST", body: params });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      resultado.textContent = await resp.text();
+      caja.style.display = "block";
+      estado.textContent = "";
+    } catch (e) {
+      estado.textContent = "No se pudo calcular, intenta de nuevo.";
+      estado.className = "error";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Calcular mi huella";
+    }
+  });
+</script>
+</body>
+</html>

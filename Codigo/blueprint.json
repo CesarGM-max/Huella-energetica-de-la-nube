@@ -1,0 +1,96 @@
+{
+  "name": "Huella_Nube_Cesar",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": 3064288,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "ai-local-agent:RunLocalAIAgent",
+      "version": 0,
+      "tools": [],
+      "parameters": {
+        "makeConnectionId": 10771262
+      },
+      "mapper": {
+        "message": "Video: {{1.video}} h/dia\nMusica: {{1.musica}} h/dia\nRedes sociales: {{1.redes}} h/dia\nVideollamadas: {{1.videollamadas}} h/semana\nJuegos en linea: {{1.juegos}} h/dia\nNube: {{1.nube}} GB\nConsultas a IA: {{1.ia}} al dia\nCorreos: {{1.correos}} al dia\nAcciones aplicadas (reto opcional): {{1.acciones}}",
+        "threadId": "",
+        "outputType": "text",
+        "tokenLimit": "50",
+        "modelConfig": {
+          "timeout": "",
+          "recursionLimit": "300",
+          "aiCompactionEnabled": true,
+          "iterationsFromHistoryCount": "10"
+        },
+        "defaultModel": "large",
+        "systemPrompt": "Eres un analista de sustentabilidad digital para alumnos de Desarrollo Sustentable del TecNM en Mazatlan, Sinaloa.\nRecibiras el uso digital de una persona. Estima la energia que ese uso provoca en centros de datos y redes.\n\nReglas:\n- Usa este factor de emision: 0.444 kg CO2e por kWh (fuente: factor de emision del Sistema Electrico Nacional 2024, SEMARNAT).\n- Para cada actividad indica el valor de kWh por hora (o por unidad) que supones. Para video en streaming las fuentes varian mucho: IEA estima 0.077 kWh por hora (2019) y el Shift Project 0.8 kWh por hora (version corregida de 2020); usa un valor intermedio y dilo.\n- No presentes las estimaciones como datos exactos.\n- Si la ultima linea de la entrada dice que se aplicaron las 3 acciones (valor 'si'), agrega al final una seccion REDUCCION ESTIMADA con cuantos kWh y kg CO2e al ano se reducirian si se aplican las 3 acciones propuestas. Si la linea viene vacia, omite esa seccion.\n\nResponde en texto plano (sin asteriscos, sin markdown), en espanol, con este formato:\n\nENERGIA ESTIMADA\nPor semana: [kWh]\nPor ano: [kWh]\nEmisiones por ano: [kg CO2e]\nEquivale a: [kilometros en auto o dias con un foco LED encendido]\n\nSUPOSICIONES\n[una linea por actividad con el valor usado]\n\nQUIEN PAGA ESTE COSTO?\n[3 lineas: por que es una externalidad, que recursos consume (energia, agua) y quien la absorbe]\n\n3 ACCIONES PARA REDUCIRLA\n1. [...]\n2. [...]\n3. [...]",
+        "promptCaching": "none",
+        "fallbackEnabled": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "gateway:WebhookRespond",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "body": "{{2.response}}",
+        "status": "200",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/plain; charset=utf-8"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "designer": {
+      "orphans": []
+    },
+    "scenario": {
+      "dlq": false,
+      "dataloss": false,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "roundtrips": 1,
+      "sequential": false,
+      "confidential": false,
+      "freshVariables": false,
+      "autoCommitTriggerLast": true
+    }
+  }
+}
